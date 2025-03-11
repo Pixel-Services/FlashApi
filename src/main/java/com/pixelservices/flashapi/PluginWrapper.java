@@ -11,7 +11,8 @@ public abstract class PluginWrapper {
 
     protected PluginWrapper(Class<? extends FlashPlugin> plugin, FlashPlugin[] dependencies) {
         try {
-            this.plugin = plugin.getDeclaredConstructor(PluginWrapper.class).newInstance(this);
+            this.plugin = plugin.getDeclaredConstructor().newInstance();
+            this.plugin.load(this);
         } catch (Throwable e) {
             throw new PluginLoadException("Failed to load plugin", e);
         }
@@ -28,23 +29,31 @@ public abstract class PluginWrapper {
         return null;
     }
 
+    public final FlashPlugin getPlugin() {
+        return plugin;
+    }
+
+    protected Status getStatus() {
+        return status;
+    }
+
     protected void enable() {
-        if (this.status != Status.LOADED && this.status != Status.DISABLED) {
-            throw new PluginLifecycleException("Cannot enable plugin in state " + this.status);
+        if (status != Status.LOADED && status != Status.DISABLED) {
+            throw new PluginLifecycleException("Cannot enable plugin in state " + status);
         }
 
         try {
-            this.plugin.onEnable();
-            this.status = Status.ENABLED;
+            plugin.onEnable();
+            status = Status.ENABLED;
         } catch (Throwable e) {
-            this.status = Status.FAILED;
+            status = Status.FAILED;
             throw new PluginLifecycleException("Failed to enable plugin", e);
         }
     }
 
     protected void disable() {
         if (this.status != Status.ENABLED) {
-            throw new PluginLifecycleException("Cannot disable plugin in state " + this.status);
+            throw new PluginLifecycleException("Cannot disable plugin in state " + status);
         }
 
         try {
@@ -56,7 +65,7 @@ public abstract class PluginWrapper {
         }
     }
 
-    protected enum Status {
+    public enum Status {
         LOADED,
         ENABLED,
         DISABLED,
